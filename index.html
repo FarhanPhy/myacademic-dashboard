@@ -592,10 +592,18 @@ function subscribeTodosRealtime(){
       saveTodosLocal();
       renderTodos();
     })
-    .on("postgres_changes",{event:"DELETE",schema:"public",table:"user_todos",filter:"user_id=eq."+userId},payload=>{
+    .on("postgres_changes",{event:"DELETE",schema:"public",table:"user_todos",filter:"user_id=eq."+userId},async payload=>{
       const id=payload.old?.id;
-      if(id==null)return;
-      todos=todos.filter(t=>String(t.id)!==String(id));
+      if(id!=null){
+        todos=todos.filter(t=>String(t.id)!==String(id));
+        saveTodosLocal();
+        renderTodos();
+        return;
+      }
+      // Jika payload DELETE tidak membawa old.id, sinkronkan ulang dari Supabase.
+      const {data:latest,error}=await sb.from("user_todos").select("*").eq("user_id",userId).order("created_at",{ascending:false});
+      if(error){console.warn("Gagal sinkronisasi setelah DELETE:",error.message);return}
+      todos=(latest||[]).map(row=>({...row,createdAt:row.created_at?new Date(row.created_at).getTime():Date.now()}));
       saveTodosLocal();
       renderTodos();
     })
