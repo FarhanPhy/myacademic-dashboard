@@ -564,6 +564,54 @@ async function deleteTodo(id){
   }
 }
 
+
+let todoRealtimeChannel=null;
+
+function subscribeTodosRealtime(){
+  if(!sb||!userId)return;
+  if(todoRealtimeChannel){
+    try{sb.removeChannel(todoRealtimeChannel)}catch(e){}
+    todoRealtimeChannel=null;
+  }
+  todoRealtimeChannel=sb.channel("user-todos-"+userId)
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"user_todos",filter:"user_id=eq."+userId},payload=>{
+      const row=payload.new;
+      if(!row||String(row.user_id)!==String(userId))return;
+      if(!todos.some(t=>String(t.id)===String(row.id))){
+        todos.push({...row,createdAt:row.created_at?new Date(row.created_at).getTime():Date.now()});
+        saveTodosLocal();
+        renderTodos();
+      }
+    })
+    .on("postgres_changes",{event:"UPDATE",schema:"public",table:"user_todos",filter:"user_id=eq."+userId},payload=>{
+      const row=payload.new;
+      if(!row||String(row.user_id)!==String(userId))return;
+      const idx=todos.findIndex(t=>String(t.id)===String(row.id));
+      if(idx>=0)todos[idx]={...todos[idx],...row,createdAt:row.created_at?new Date(row.created_at).getTime():(todos[idx].createdAt||Date.now())};
+      else todos.push({...row,createdAt:row.created_at?new Date(row.created_at).getTime():Date.now()});
+      saveTodosLocal();
+      renderTodos();
+    })
+    .on("postgres_changes",{event:"DELETE",schema:"public",table:"user_todos",filter:"user_id=eq."+userId},async payload=>{
+      const id=payload.old?.id;
+      if(id!=null){
+        todos=todos.filter(t=>String(t.id)!==String(id));
+        saveTodosLocal();
+        renderTodos();
+        return;
+      }
+      // Jika payload DELETE tidak membawa old.id, sinkronkan ulang dari Supabase.
+      const {data:latest,error}=await sb.from("user_todos").select("*").eq("user_id",userId).order("created_at",{ascending:false});
+      if(error){console.warn("Gagal sinkronisasi setelah DELETE:",error.message);return}
+      todos=(latest||[]).map(row=>({...row,createdAt:row.created_at?new Date(row.created_at).getTime():Date.now()}));
+      saveTodosLocal();
+      renderTodos();
+    })
+    .subscribe((status)=>{
+      if(status==="CHANNEL_ERROR")console.warn("To-Do Realtime gagal terhubung.");
+    });
+}
+
 async function loadTodosOnline(){
   if(!userId)return;
   const {data:remote,error}=await sb.from("user_todos").select("*").eq("user_id",userId).order("created_at",{ascending:false});
@@ -592,6 +640,7 @@ async function loadTodosOnline(){
   saveTodosLocal();
   todosLoadedOnline=true;
   renderTodos();
+  subscribeTodosRealtime();
 }
 
 function exportScheduleExcel(){
@@ -659,6 +708,6 @@ let sel=document.getElementById("semFilter");for(let i=1;i<=8;i++)sel.innerHTML+
 }
 async function upd(i,k,v){data[i][k]=v;let {error}=await sb.from("user_courses").update({[k]:v}).eq("user_id",userId).eq("course_id",data[i].course_id);if(error)alert(error.message);calc();renderSchedule()}
 if(!sbConfigured){document.body.innerHTML='<div class="authbox"><h1>Academic Dashboard Online</h1><p>Program siap dihubungkan. Isi SUPABASE_URL dan SUPABASE_KEY di index.html.</p></div>'}
-else{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);sb.auth.getSession().then(({data:{session}})=>session?onlineLoad():loginPage());sb.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT")loginPage()})}
+else{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);sb.auth.getSession().then(({data:{session}})=>session?onlineLoad():loginPage());sb.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"){if(todoRealtimeChannel){try{sb.removeChannel(todoRealtimeChannel)}catch(e){}todoRealtimeChannel=null}loginPage()}})}
 
 </script></body></html>
