@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Academic Dashboard - Fisika</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f4f6fb;color:#182033}
+header{background:#182848;color:white;padding:25px 5%;position:sticky;top:0;z-index:5}
+h1{margin:0 0 5px;font-size:26px}.sub{opacity:.8}
+main{max-width:1450px;margin:25px auto;padding:0 20px}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}
+.card{background:white;border-radius:14px;padding:20px;box-shadow:0 4px 15px #0000000d}.label{font-size:13px;color:#68738a}.value{font-size:28px;font-weight:700;margin-top:8px}
+nav{display:flex;gap:8px;margin:22px 0;flex-wrap:wrap}button,select,input{font:inherit}
+button{border:0;border-radius:9px;padding:10px 15px;background:#e9edf5;cursor:pointer}button.active,button.primary{background:#182848;color:#fff}
+.panel{background:white;border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:0 4px 15px #0000000d}
+.progress{height:14px;background:#e7eaf1;border-radius:10px;overflow:hidden}.bar{height:100%;background:#3859a8;width:0}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px}.filters input{padding:10px;border:1px solid #ccd3df;border-radius:8px;min-width:240px}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
+th,td{padding:10px 8px;border-bottom:1px solid #edf0f5;text-align:left;vertical-align:middle}
+th{background:#f7f8fb;font-weight:700;border-bottom:2px solid #dfe4ee;white-space:nowrap}
+.table-wrap{width:100%;overflow-x:auto;border:1px solid #e5e9f1;border-radius:10px}
+.course-table{min-width:1250px;table-layout:fixed}
+.course-table th:nth-child(1),.course-table td:nth-child(1){width:55px;text-align:center}
+.course-table th:nth-child(2),.course-table td:nth-child(2){width:270px}
+.course-table th:nth-child(3),.course-table td:nth-child(3){width:105px}
+.course-table th:nth-child(4),.course-table td:nth-child(4){width:55px;text-align:center}
+.course-table th:nth-child(5),.course-table td:nth-child(5){width:145px}
+.course-table th:nth-child(6),.course-table td:nth-child(6){width:75px}
+.course-table th:nth-child(7),.course-table td:nth-child(7){width:105px}
+.course-table th:nth-child(8),.course-table td:nth-child(8){width:120px}
+.course-table th:nth-child(9),.course-table td:nth-child(9){width:135px}
+.course-table th:nth-child(10),.course-table td:nth-child(10){width:160px}
+.course-table td:nth-child(2){white-space:normal;line-height:1.35;font-weight:500}
+.course-table td input,.course-table td select{min-width:0;width:100%;height:36px}
+td input,td select{width:100%;padding:7px 8px;border:1px solid #d7dce6;border-radius:7px;background:white}
+.course-table tbody tr:hover td{background:#fafbfe}
+.course-table thead th{position:sticky;top:0;z-index:2}
+.small{font-size:12px;color:#69748a}.daytabs{display:flex;gap:7px;overflow:auto;margin-bottom:15px}.daytabs button{white-space:nowrap}
+.schedule-row{display:grid;grid-template-columns:90px 1fr 70px;gap:15px;padding:15px 5px;border-bottom:1px solid #eee}.empty{padding:30px;text-align:center;color:#8791a5}
+@media(max-width:900px){.cards{grid-template-columns:repeat(2,1fr)}.course-table{min-width:1250px}.schedule-row{min-width:500px}}
+@media(max-width:550px){.cards{grid-template-columns:1fr 1fr}.value{font-size:21px}}
+.authbox{max-width:430px;margin:80px auto;padding:28px;background:#fff;border-radius:16px;box-shadow:0 8px 30px #0002}.authbox input{width:100%;padding:12px;margin:7px 0;border:1px solid #ccd3df;border-radius:8px}.authbox button{width:100%;margin-top:8px}</style></head><body>
+<header><h1>🎓 Academic Dashboard</h1><div class="sub">Program Studi Fisika — Kurikulum OBE 2025</div></header>
+<main>
+<section class="cards">
+<div class="card"><div class="label">IPK Kumulatif</div><div class="value" id="ipk">0.00</div></div>
+<div class="card"><div class="label">SKS Lulus</div><div class="value" id="lulus">0</div></div>
+<div class="card"><div class="label">SKS Sedang Diambil</div><div class="value" id="sedang">0</div></div>
+<div class="card"><div class="label">SKS Belum Diambil</div><div class="value" id="belum">146</div></div>
+</section>
+<div class="panel"><div style="display:flex;justify-content:space-between"><b>Progress Kurikulum</b><span id="percent">0%</span></div><br><div class="progress"><div class="bar" id="bar"></div></div><p class="small" id="progressText">0 / 146 SKS lulus</p></div>
+<nav>
+<button class="active" onclick="showTab('schedule',this)">📅 Jadwal</button>
+<button onclick="showTab('courses',this)">📚 Mata Kuliah</button>
+<button onclick="showTab('semester',this)">📊 Per Semester</button>
+<button onclick="exportData()">💾 Backup Data</button>
+<label class="primary" style="padding:10px 15px;border-radius:9px;cursor:pointer">📂 Restore Data<input type="file" id="import" accept=".json" hidden onchange="importData(event)"></label>
+</nav>
+<section id="schedule" class="panel"><h2>📅 Jadwal Senin–Sabtu</h2><div class="daytabs" id="days"></div><div id="sched"></div>
+<p class="small">Jadwal pada file kurikulum belum diisi. Isi hari, jam, ruang, dan dosen pada tabel Mata Kuliah.</p></section>
+<section id="courses" class="panel" style="display:none"><h2>📚 Daftar Mata Kuliah</h2>
+<div class="filters"><input id="search" placeholder="Cari mata kuliah..." oninput="renderCourses()"><select id="semFilter" onchange="renderCourses()"><option value="">Semua semester</option></select><select id="statusFilter" onchange="renderCourses()"><option value="">Semua status</option><option>Sudah lulus</option><option>Sedang diambil</option><option>Belum diambil</option><option>Mengulang</option></select></div>
+<div class="table-wrap"><table class="course-table"><thead><tr><th>Sem</th><th>Mata Kuliah</th><th>Kode</th><th>SKS</th><th>Status</th><th>Nilai</th><th>Hari</th><th>Jam</th><th>Ruang</th><th>Dosen</th></tr></thead><tbody id="courseBody"></tbody></table></div></section>
+<section id="semester" class="panel" style="display:none"><h2>📊 Ringkasan Semester</h2><div class="table-wrap"><table><thead><tr><th>Semester</th><th>Total SKS</th><th>Lulus</th><th>Sedang</th><th>Belum</th><th>IP Semester</th></tr></thead><tbody id="semBody"></tbody></table></div></section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://jfxltfqegyiqaxlylfaz.supabase.co";
+const SUPABASE_KEY="sb_publishable_GphKKK6lLM_FCtj0bQN29w_l3912nrA";
+const sbConfigured=!SUPABASE_URL.startsWith("PASTE_")&&!SUPABASE_KEY.startsWith("PASTE_");
+let sb=null, userId=null, data=[], currentDay="Senin";
+const gradePoint={A:4,"A-":3.7,"B+":3.3,B:3,"B-":2.7,"C+":2.3,C:2,"C-":1.7,D:1,E:0};
+const days=["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+function save(){localStorage.setItem("academicDashboard",JSON.stringify(data));}
+function load(){let x=localStorage.getItem("academicDashboard");if(x)try{data=JSON.parse(x)}catch(e){}}
+function showTab(id,btn){document.querySelectorAll("main>section.panel").forEach(x=>x.style.display="none");document.getElementById(id).style.display="block";document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));btn.classList.add("active");if(id=="courses")renderCourses();if(id=="semester")renderSemester();if(id=="schedule")renderSchedule();}
+function calc(){let l=0,s=0,b=0,points=0,credits=0;data.forEach(x=>{if(x.status=="Sudah lulus"){l+=+x.sks;if(gradePoint[x.grade]!=null){points+=gradePoint[x.grade]*x.sks;credits+=+x.sks}}else if(x.status=="Sedang diambil")s+=+x.sks;else b+=+x.sks});let ipk=credits?points/credits:0;document.getElementById("ipk").textContent=ipk.toFixed(2);document.getElementById("lulus").textContent=l;document.getElementById("sedang").textContent=s;document.getElementById("belum").textContent=b;let p=l/146*100;document.getElementById("percent").textContent=p.toFixed(1)+"%";document.getElementById("bar").style.width=p+"%";document.getElementById("progressText").textContent=l+" / 146 SKS lulus";save();}
+function renderDays(){document.getElementById("days").innerHTML=days.map(d=>`<button class="${d==currentDay?'active':''}" onclick="currentDay='${d}';renderSchedule()">${d}</button>`).join("")}
+function renderSchedule(){renderDays();let a=data.filter(x=>x.day==currentDay).sort((a,b)=>(a.time||"").localeCompare(b.time||""));document.getElementById("sched").innerHTML=a.length?a.map(x=>`<div class="schedule-row"><b>${x.time||"--:--"}</b><div><b>${x.name}</b><div class="small">${x.code} · ${x.room||"Ruang belum diisi"} · ${x.lecturer||"Dosen belum diisi"}</div></div><span>${x.sks} SKS</span></div>`).join(""):`<div class="empty">Tidak ada jadwal ${currentDay} yang diisi.</div>`}
+function renderCourses(){let q=document.getElementById("search").value.toLowerCase(),sf=document.getElementById("semFilter").value,st=document.getElementById("statusFilter").value;let a=data.map((x,i)=>({...x,i})).filter(x=>(x.name+" "+x.code).toLowerCase().includes(q)&&(!sf||x.semester==sf)&&(!st||x.status==st));document.getElementById("courseBody").innerHTML=a.map(x=>`<tr><td>${x.semester}</td><td><b>${x.name}</b></td><td>${x.code}</td><td>${x.sks}</td><td><select onchange="upd(${x.i},'status',this.value)"><option ${x.status=="Sudah lulus"?"selected":""}>Sudah lulus</option><option ${x.status=="Sedang diambil"?"selected":""}>Sedang diambil</option><option ${x.status=="Belum diambil"?"selected":""}>Belum diambil</option><option ${x.status=="Mengulang"?"selected":""}>Mengulang</option></select></td><td><select onchange="upd(${x.i},'grade',this.value)"><option value="">-</option>${Object.keys(gradePoint).map(g=>`<option ${x.grade==g?"selected":""}>${g}</option>`).join("")}</select></td><td><select onchange="upd(${x.i},'day',this.value)"><option value="">-</option>${days.map(d=>`<option ${x.day==d?"selected":""}>${d}</option>`).join("")}</select></td><td><input value="${x.time||""}" placeholder="08:00" onchange="upd(${x.i},'time',this.value)"></td><td><input value="${x.room||""}" placeholder="Ruang" onchange="upd(${x.i},'room',this.value)"></td><td><input value="${x.lecturer||""}" placeholder="Dosen" onchange="upd(${x.i},'lecturer',this.value)"></td></tr>`).join("");}
+function upd(i,k,v){data[i][k]=v;calc();renderSchedule();if(document.getElementById("semester").style.display!="none")renderSemester();}
+function renderSemester(){let rows=[];for(let s=1;s<=8;s++){let a=data.filter(x=>+x.semester==s),tot=a.reduce((z,x)=>z+x.sks,0),l=a.filter(x=>x.status=="Sudah lulus"),sed=a.filter(x=>x.status=="Sedang diambil");let pts=0,cr=0;l.forEach(x=>{if(gradePoint[x.grade]!=null){pts+=gradePoint[x.grade]*x.sks;cr+=x.sks}});rows.push(`<tr><td>${s}</td><td>${tot}</td><td>${l.reduce((z,x)=>z+x.sks,0)}</td><td>${sed.reduce((z,x)=>z+x.sks,0)}</td><td>${a.filter(x=>x.status=="Belum diambil").reduce((z,x)=>z+x.sks,0)}</td><td>${cr?(pts/cr).toFixed(2):"-"}</td></tr>`)}document.getElementById("semBody").innerHTML=rows.join("")}
+function exportData(){let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="backup-akademik.json";a.click();}
+function importData(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{data=JSON.parse(r.result);calc();renderCourses();renderSchedule();alert("Data berhasil dipulihkan.")}catch(err){alert("File backup tidak valid.")}};r.readAsText(f)}
+
+async function loginPage(msg=""){
+document.querySelector("body").innerHTML=`<div class="authbox"><h1>🎓 Academic Dashboard</h1><p>Login untuk menyimpan data secara online.</p><input id="email" type="email" placeholder="Email"><input id="pass" type="password" placeholder="Password"><button class="primary" onclick="doLogin()">Masuk</button><button onclick="doSignup()">Buat akun</button><p id="authmsg" class="small">${msg}</p></div>`;
+}
+async function doLogin(){
+  authmsg.textContent="Memproses login...";
+  const {error}=await sb.auth.signInWithPassword({
+    email:document.getElementById("email").value,
+    password:document.getElementById("pass").value
+  });
+  if(error){authmsg.textContent=error.message;return}
+  await onlineLoad();
+}
+async function doSignup(){if(pass.value.length<6){authmsg.textContent="Password minimal 6 karakter.";return}const {error}=await sb.auth.signUp({email:email.value,password:pass.value});authmsg.textContent=error?error.message:"Akun dibuat. Cek email jika verifikasi email aktif."}
+async function onlineLoad(){
+const {data:{user}}=await sb.auth.getUser(); if(!user)return; userId=user.id;
+let {data:base,error}=await sb.from("courses").select("*").order("semester").order("id"); if(error){alert(error.message);return}
+let {data:mine,error:e}=await sb.from("user_courses").select("*").eq("user_id",userId); if(e){alert(e.message);return}
+if(!mine.length){const rows=base.map(c=>({user_id:userId,course_id:c.id,status:"Belum diambil",grade:"",day:"",time:"",room:"",lecturer:""}));let ins=await sb.from("user_courses").insert(rows);if(ins.error){alert(ins.error.message);return}mine=(await sb.from("user_courses").select("*").eq("user_id",userId)).data||[]}
+data=mine.map(r=>({...base.find(c=>c.id===r.course_id),...r}));
+document.querySelector("body").innerHTML=`<header><div><h1>🎓 Academic Dashboard</h1><div class="sub">Program Studi Fisika — Online</div></div><button onclick="sb.auth.signOut()">Keluar</button></header><main>
+<section class="cards"><div class="card"><div class="label">IPK Kumulatif</div><div class="value" id="ipk">0.00</div></div><div class="card"><div class="label">SKS Lulus</div><div class="value" id="lulus">0</div></div><div class="card"><div class="label">SKS Sedang Diambil</div><div class="value" id="sedang">0</div></div><div class="card"><div class="label">SKS Belum Diambil</div><div class="value" id="belum">146</div></div></section>
+<div class="panel" style="margin-top:15px"><div style="display:flex;justify-content:space-between"><b>Progress Kurikulum</b><span id="percent">0%</span></div><br><div class="progress"><div class="bar" id="bar"></div></div><p class="small" id="progressText">0 / 146 SKS lulus</p></div>
+<nav><button class="active" onclick="showTab('schedule',this)">📅 Jadwal</button><button onclick="showTab('courses',this)">📚 Mata Kuliah</button><button onclick="showTab('semester',this)">📊 Per Semester</button></nav>
+<section id="schedule" class="panel"><h2>📅 Jadwal Senin–Sabtu</h2><div class="daytabs" id="days"></div><div id="sched"></div></section>
+<section id="courses" class="panel" style="display:none"><h2>📚 Daftar Mata Kuliah</h2><div class="filters"><input id="search" placeholder="Cari mata kuliah..." oninput="renderCourses()"><select id="semFilter" onchange="renderCourses()"><option value="">Semua semester</option></select><select id="statusFilter" onchange="renderCourses()"><option value="">Semua status</option><option>Sudah lulus</option><option>Sedang diambil</option><option>Belum diambil</option><option>Mengulang</option></select></div><div class="table-wrap"><table class="course-table"><thead><tr><th>Sem</th><th>Mata Kuliah</th><th>Kode</th><th>SKS</th><th>Status</th><th>Nilai</th><th>Hari</th><th>Jam</th><th>Ruang</th><th>Dosen</th></tr></thead><tbody id="courseBody"></tbody></table></div></section>
+<section id="semester" class="panel" style="display:none"><h2>📊 Ringkasan Semester</h2><div class="table-wrap"><table><thead><tr><th>Semester</th><th>Total SKS</th><th>Lulus</th><th>Sedang</th><th>Belum</th><th>IP Semester</th></tr></thead><tbody id="semBody"></tbody></table></div></section></main>`;
+let sel=document.getElementById("semFilter");for(let i=1;i<=8;i++)sel.innerHTML+=`<option>${i}</option>`;calc();renderSchedule();renderCourses();renderSemester()
+}
+async function upd(i,k,v){data[i][k]=v;let {error}=await sb.from("user_courses").update({[k]:v}).eq("user_id",userId).eq("course_id",data[i].course_id);if(error)alert(error.message);calc();renderSchedule()}
+if(!sbConfigured){document.body.innerHTML='<div class="authbox"><h1>Academic Dashboard Online</h1><p>Program siap dihubungkan. Isi SUPABASE_URL dan SUPABASE_KEY di index.html.</p></div>'}
+else{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);sb.auth.getSession().then(({data:{session}})=>session?onlineLoad():loginPage());sb.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT")loginPage()})}
+
+</script></body></html>
