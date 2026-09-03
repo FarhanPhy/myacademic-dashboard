@@ -196,6 +196,32 @@ function lockscreenModalHTML(){return `<div id="lockscreenModal">
           <option value="light">Light</option>
         </select>
 
+        <label>Semester</label>
+        <select id="lockSemester" onchange="drawLockscreen()">
+          <option value="1">Semester 1</option>
+          <option value="2" selected>Semester 2</option>
+          <option value="3">Semester 3</option>
+          <option value="4">Semester 4</option>
+          <option value="5">Semester 5</option>
+          <option value="6">Semester 6</option>
+          <option value="7">Semester 7</option>
+          <option value="8">Semester 8</option>
+        </select>
+
+        <label>Tahun</label>
+        <select id="lockYear" onchange="drawLockscreen()">
+          <option value="2026" selected>2026</option>
+          <option value="2027">2027</option>
+          <option value="2028">2028</option>
+          <option value="2029">2029</option>
+          <option value="2030">2030</option>
+          <option value="2031">2031</option>
+          <option value="2032">2032</option>
+          <option value="2033">2033</option>
+          <option value="2034">2034</option>
+          <option value="2035">2035</option>
+        </select>
+
         <label>Tampilan</label>
         <select id="lockLayout" onchange="drawLockscreen()">
           <option value="compact">Ringkas</option>
@@ -258,7 +284,9 @@ function drawLockscreen(){
   y+=58;
   ctx.fillStyle=accent;
   ctx.font="700 22px Arial";
-  ctx.fillText("SEMESTER 2  •  2026",left,y);
+  const semester=document.getElementById("lockSemester")?.value||"2";
+  const year=document.getElementById("lockYear")?.value||"2026";
+  ctx.fillText(`SEMESTER ${semester}  •  ${year}`,left,y);
 
   y+=58;
 
