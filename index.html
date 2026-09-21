@@ -292,12 +292,14 @@ function drawLockscreen(){
 
   const order={Senin:1,Selasa:2,Rabu:3,Kamis:4,Jumat:5,Sabtu:6};
   const grouped={};
+
+  // Tetap gunakan semua jadwal yang sudah memiliki hari + jam.
   data.filter(x=>(x.day||"").trim()&&(x.time||"").trim())
     .sort((a,b)=>(order[a.day]||99)-(order[b.day]||99)||(a.time||"").localeCompare(b.time||""))
     .forEach(x=>{(grouped[x.day]??=[]).push(x)});
 
   const dayList=Object.keys(grouped).sort((a,b)=>(order[a]||99)-(order[b]||99));
-  const rowH=compact?142:168;
+  const totalItems=dayList.reduce((n,day)=>n+grouped[day].length,0);
   const bottomSafe=245;
 
   if(!dayList.length){
@@ -307,20 +309,40 @@ function drawLockscreen(){
     return;
   }
 
-  dayList.forEach(day=>{
-    if(y>canvas.height-bottomSafe-100)return;
+  /*
+    AUTO-FIT:
+    Sebelumnya rowH selalu 142/168 px. Jika jumlah mata kuliah bertambah,
+    item paling bawah bisa terpotong oleh batas area lockscreen.
+    Sekarang tinggi kartu dihitung dari jumlah hari + jumlah mata kuliah,
+    sehingga semua jadwal tetap masuk ke gambar 1080x2340.
+  */
+  const baseRowH=compact?142:168;
+  const dayOverhead=43; // 18 px setelah judul hari + 25 px antarhari
+  const available=canvas.height-bottomSafe-y;
+  const fittedRowH=Math.floor((available-(dayList.length*dayOverhead))/Math.max(totalItems,1));
+  const rowH=Math.max(104,Math.min(baseRowH,fittedRowH));
 
+  // Font ikut mengecil secara proporsional bila jumlah jadwal sangat banyak.
+  const scale=Math.max(0.68,Math.min(1,rowH/baseRowH));
+  const timeFont=Math.round(32*scale);
+  const nameFont=Math.round(29*scale);
+  const detailFont=Math.round(22*scale);
+  const dayFont=Math.round(38*scale);
+  const titleGap=Math.round(43*scale);
+  const nameGap=Math.round(83*scale);
+  const detailGap=Math.round(119*scale);
+
+  dayList.forEach(day=>{
+    // Jangan lagi "return" diam-diam untuk menghilangkan jadwal.
     ctx.fillStyle=fg;
-    ctx.font="700 38px Arial";
+    ctx.font=`700 ${dayFont}px Arial`;
     ctx.fillText(day.toUpperCase(),left,y);
     y+=18;
 
     grouped[day].forEach(x=>{
-      if(y+rowH>canvas.height-bottomSafe)return;
-
       ctx.fillStyle=card;
       ctx.beginPath();
-      ctx.roundRect(left,y,width,rowH-14,20);
+      ctx.roundRect(left,y,width,Math.max(76,rowH-14),20);
       ctx.fill();
       ctx.strokeStyle=line;
       ctx.lineWidth=2;
@@ -328,24 +350,27 @@ function drawLockscreen(){
 
       // Time is intentionally the most prominent item inside each card.
       ctx.fillStyle=accent;
-      ctx.font="700 32px Arial";
-      ctx.fillText(x.time||"--:--",left+26,y+43);
+      ctx.font=`700 ${timeFont}px Arial`;
+      ctx.fillText(x.time||"--:--",left+26,y+Math.min(titleGap,rowH-48));
 
       ctx.fillStyle=fg;
-      ctx.font="700 29px Arial";
+      ctx.font=`700 ${nameFont}px Arial`;
       let name=x.name||"";
       if(name.length>43)name=name.slice(0,42)+"…";
-      ctx.fillText(name,left+26,y+83);
+      ctx.fillText(name,left+26,y+Math.min(nameGap,rowH-28));
 
       ctx.fillStyle=muted;
-      ctx.font="400 22px Arial";
+      ctx.font=`400 ${detailFont}px Arial`;
       const detail=[x.room||"Ruang belum diisi",x.lecturer||"Dosen belum diisi",`${x.sks||0} SKS`].join("  ·  ");
       let detailText=detail;
-      while(ctx.measureText(detailText).width>width-52 && detailText.length>10){detailText=detailText.slice(0,-2)+"…";}
-      ctx.fillText(detailText,left+26,y+119);
+      while(ctx.measureText(detailText).width>width-52 && detailText.length>10){
+        detailText=detailText.slice(0,-2)+"…";
+      }
+      ctx.fillText(detailText,left+26,y+Math.min(detailGap,rowH-9));
 
       y+=rowH;
     });
+
     y+=25;
   });
 
